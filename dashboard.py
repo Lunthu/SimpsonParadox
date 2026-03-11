@@ -26,8 +26,27 @@ class CorrelationDashboard:
             theme: Bootstrap theme name
         """
         self.analyzer = analyzer
-        self.visualizer = CorrelationVisualizer(analyzer.data)
-        self.paradox_visualizer = ParadoxVisualizer(analyzer.data)
+        # Pre-sample data once if dataset is large
+        self.full_data = analyzer.data
+        self.max_plot_points = analyzer.max_plot_points
+        
+        if len(self.full_data) > self.max_plot_points:
+            print(f"  📊 Pre-sampling dataset: {self.max_plot_points:,} of {len(self.full_data):,} points ({self.max_plot_points/len(self.full_data):.1%})")
+            self.sampled_data = self.full_data.sample(n=self.max_plot_points, random_state=42)
+        else:
+            self.sampled_data = self.full_data
+        
+        # Create visualizers with both full and sampled data
+        self.visualizer = CorrelationVisualizer(
+            full_data=analyzer.data,
+            sampled_data=self.sampled_data,
+            metrics=analyzer.metrics,
+            dimensions=analyzer.dimensions
+        )
+        self.paradox_visualizer = ParadoxVisualizer(
+            full_data=analyzer.data,
+            sampled_data=self.sampled_data
+        )
         
         # Initialize Dash app
         self.app = dash.Dash(

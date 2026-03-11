@@ -15,53 +15,29 @@ from typing import List, Dict, Optional
 class ParadoxVisualizer:
     """Create visualizations specifically for paradoxes and hidden patterns"""
     
-    def __init__(self, data: pd.DataFrame, max_plot_points: int = 1000, 
+    def __init__(self, full_data: pd.DataFrame = None, sampled_data: pd.DataFrame = None,
+                 data: pd.DataFrame = None, max_plot_points: int = 1000, 
                  color_palette: Optional[List[str]] = None):
         """
         Initialize paradox visualizer
         
         Args:
-            data: DataFrame with analysis data
-            max_plot_points: Maximum points to show in visualizations
+            full_data: Complete dataset for accurate statistics (preferred)
+            sampled_data: Pre-sampled dataset for visualization (preferred)
+            data: Legacy parameter for backward compatibility
+            max_plot_points: Maximum points (legacy)
             color_palette: Custom color palette
         """
-        self.data = data
-        self.max_plot_points = max_plot_points
-        self.color_palette = color_palette or px.colors.qualitative.Bold
-        self._sampled_cache = {}  # Cache for sampled data
-    
-
-    def _sample_for_plot(self, df: pd.DataFrame, cache_key: str = None) -> pd.DataFrame:
-        """
-        Sample data for visualization if too large. Uses caching to avoid re-sampling.
-        
-        Args:
-            df: DataFrame to potentially sample
-            cache_key: Optional key for caching (e.g., 'metric_x-metric_y-dimension')
-            
-        Returns:
-            Sampled or original DataFrame
-        """
-        # Check cache first
-        if cache_key and cache_key in self._sampled_cache:
-            return self._sampled_cache[cache_key]
-        
-        if len(df) <= self.max_plot_points:
-            result = df  # Small enough, use all data
+        # Support both new and old patterns
+        if full_data is not None:
+            self.full_data = full_data
+            self.sampled_data = sampled_data if sampled_data is not None else full_data
         else:
-            # Sample maintaining distribution
-            sample_fraction = self.max_plot_points / len(df)
-            result = df.sample(n=self.max_plot_points, random_state=42)
-            
-            # Only print on first sample
-            if cache_key and cache_key not in self._sampled_cache:
-                print(f"  📊 Sampled {self.max_plot_points:,} of {len(df):,} points for visualization ({sample_fraction:.1%})")
+            self.full_data = data
+            self.sampled_data = data
         
-        # Cache the result
-        if cache_key:
-            self._sampled_cache[cache_key] = result
-        
-        return result
+        self.color_palette = color_palette or px.colors.qualitative.Bold
+    
 
     def visualize_simpsons_paradox(self, paradox: Dict) -> go.Figure:
         """
@@ -73,12 +49,9 @@ class ParadoxVisualizer:
         metric_y = paradox['metric_y']
         dimension = paradox['dimension']
         
-        # Get full data for accurate calculations
-        full_data = self.data[[metric_x, metric_y, dimension]].dropna()
-        
-        # Sample for visualization (with caching)
-        cache_key = f"simpson_{metric_x}_{metric_y}_{dimension}"
-        plot_data = self._sample_for_plot(full_data, cache_key=cache_key)
+        # Use pre-sampled data for visualization, full data for statistics
+        full_data = self.full_data[[metric_x, metric_y, dimension]].dropna()
+        plot_data = self.sampled_data[[metric_x, metric_y, dimension]].dropna()
         
         # Create figure with subplots
         fig = make_subplots(
@@ -214,12 +187,9 @@ class ParadoxVisualizer:
         metric_y = interaction['metric_y']
         moderator = interaction['moderator']
         
-        # Get full data for accurate calculations
-        full_data = self.data[[metric_x, metric_y, moderator]].dropna()
-        
-        # Sample for visualization (with caching)
-        cache_key = f"interaction_{metric_x}_{metric_y}_{moderator}"
-        plot_data = self._sample_for_plot(full_data, cache_key=cache_key)
+        # Use pre-sampled data for visualization, full data for statistics
+        full_data = self.full_data[[metric_x, metric_y, moderator]].dropna()
+        plot_data = self.sampled_data[[metric_x, metric_y, moderator]].dropna()
         
         # Create scatter with trend lines for each group
         fig = go.Figure()
@@ -290,12 +260,9 @@ class ParadoxVisualizer:
         metric_y = confounder_info['metric_y']
         confounder = confounder_info['confounder']
         
-        # Get full data for accurate calculations
-        full_data = self.data[[metric_x, metric_y, confounder]].dropna()
-        
-        # Sample for visualization (with caching)
-        cache_key = f"confounding_{metric_x}_{metric_y}_{confounder}"
-        plot_data = self._sample_for_plot(full_data, cache_key=cache_key)
+        # Use pre-sampled data for visualization, full data for statistics
+        full_data = self.full_data[[metric_x, metric_y, confounder]].dropna()
+        plot_data = self.sampled_data[[metric_x, metric_y, confounder]].dropna()
         
         # Create side-by-side comparison
         fig = make_subplots(
@@ -495,12 +462,9 @@ class ParadoxVisualizer:
         metric_y = reversal['metric_y']
         dimension = reversal['dimension']
         
-        # Full data for calculations
-        full_data = self.data[[metric_x, metric_y, dimension]].dropna()
-        
-        # Sample for visualization (with caching)
-        cache_key = f"reversal_{metric_x}_{metric_y}_{dimension}"
-        plot_data = self._sample_for_plot(full_data, cache_key=cache_key)
+        # Use pre-sampled data for visualization, full data for statistics
+        full_data = self.full_data[[metric_x, metric_y, dimension]].dropna()
+        plot_data = self.sampled_data[[metric_x, metric_y, dimension]].dropna()
         
         # Create figure with subplots: individual groups on left, overall on right
         fig = make_subplots(

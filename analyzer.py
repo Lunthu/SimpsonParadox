@@ -23,7 +23,7 @@ class CorrelationAnalyzer:
                  dimensions: List[str] = None,
                  metrics: List[str] = None,
                  detection_sensitivity: str = 'moderate',
-                 max_plot_points: int = 5000):
+                 max_plot_points: int = 1000):
         """
         Initialize the analyzer
         

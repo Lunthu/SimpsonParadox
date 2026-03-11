@@ -14,49 +14,35 @@ from typing import List, Dict, Tuple, Optional
 class CorrelationVisualizer:
     """Create interactive visualizations for correlation analysis"""
     
-    def __init__(self, data: pd.DataFrame, color_palette: Optional[List[str]] = None):
+    def __init__(self, full_data: pd.DataFrame = None, sampled_data: pd.DataFrame = None,
+                 metrics: List[str] = None, dimensions: List[str] = None,
+                 data: pd.DataFrame = None, max_plot_points: int = 1000,
+                 color_palette: Optional[List[str]] = None):
         """
         Initialize visualizer
         
         Args:
-            data: DataFrame with analysis data
+            full_data: Complete dataset for accurate statistics (preferred)
+            sampled_data: Pre-sampled dataset for visualization (preferred)
+            data: Legacy parameter for backward compatibility
+            metrics: List of metric columns
+            dimensions: List of dimension columns
+            max_plot_points: Maximum points (legacy, not used if sampled_data provided)
             color_palette: Custom color palette for dimensions
         """
-        self.data = data
+        # Support both new (full_data/sampled_data) and old (data) patterns
+        if full_data is not None:
+            self.full_data = full_data
+            self.sampled_data = sampled_data if sampled_data is not None else full_data
+        else:
+            # Legacy mode: use data for both
+            self.full_data = data
+            self.sampled_data = data
+        
+        self.metrics = metrics or []
+        self.dimensions = dimensions or []
         self.color_palette = color_palette or px.colors.qualitative.Set2
         
-
-    def _sample_for_plot(self, df: pd.DataFrame, cache_key: str = None) -> pd.DataFrame:
-        """
-        Sample data for visualization if too large. Uses caching to avoid re-sampling.
-        
-        Args:
-            df: DataFrame to potentially sample
-            cache_key: Optional key for caching
-            
-        Returns:
-            Sampled or original DataFrame
-        """
-        # Check cache first
-        if cache_key and cache_key in self._sampled_cache:
-            return self._sampled_cache[cache_key]
-        
-        if len(df) <= self.max_plot_points:
-            result = df  # Small enough, use all data
-        else:
-            # Sample maintaining distribution
-            sample_fraction = self.max_plot_points / len(df)
-            result = df.sample(n=self.max_plot_points, random_state=42)
-            
-            # Only print on first sample
-            if cache_key and cache_key not in self._sampled_cache:
-                print(f"  📊 Sampled {self.max_plot_points:,} of {len(df):,} points for visualization ({sample_fraction:.1%})")
-        
-        # Cache the result
-        if cache_key:
-            self._sampled_cache[cache_key] = result
-        
-        return result
 
     def create_scatter_plot(self, 
                            metric_x: str, 
@@ -76,8 +62,9 @@ class CorrelationVisualizer:
             highlight_patterns: Patterns to highlight on plot
             title: Custom plot title
         """
-        # Clean data
-        plot_data = self.data[[metric_x, metric_y, dimension]].dropna()
+        # Use pre-sampled data for visualization, full data for statistics
+        full_data = self.full_data[[metric_x, metric_y, dimension]].dropna()
+        plot_data = self.sampled_data[[metric_x, metric_y, dimension]].dropna()
         
         # Create base scatter plot
         fig = px.scatter(
@@ -94,13 +81,13 @@ class CorrelationVisualizer:
             }
         )
         
-        # Add regression line
-        if len(plot_data) >= 2:
+        # Add regression line (use full data for accuracy)
+        if len(full_data) >= 2:
             try:
-                if plot_data[metric_x].nunique() > 1 and plot_data[metric_y].nunique() > 1:
-                    z = np.polyfit(plot_data[metric_x], plot_data[metric_y], 1)
+                if full_data[metric_x].nunique() > 1 and full_data[metric_y].nunique() > 1:
+                    z = np.polyfit(full_data[metric_x], full_data[metric_y], 1)
                     p = np.poly1d(z)
-                    x_line = np.linspace(plot_data[metric_x].min(), plot_data[metric_x].max(), 100)
+                    x_line = np.linspace(full_data[metric_x].min(), full_data[metric_x].max(), 100)
                     
                     fig.add_trace(go.Scatter(
                         x=x_line,
@@ -277,7 +264,7 @@ class CorrelationVisualizer:
             metric: Metric to analyze
         """
         fig = px.box(
-            self.data,
+            self.full_data,
             x=dimension,
             y=metric,
             color=dimension,
@@ -340,7 +327,7 @@ class CorrelationVisualizer:
             row = (idx // cols) + 1
             col = (idx % cols) + 1
             
-            plot_data = self.data[[metric_x, metric_y, dimension]].dropna()
+            plot_data = self.sampled_data[[metric_x, metric_y, dimension]].dropna()
             
             # Add traces for each dimension group
             for group in plot_data[dimension].unique():
