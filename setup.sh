@@ -43,10 +43,6 @@ fi
 echo "✅ Sample data generated"
 echo ""
 
-# Run examples
-echo "🎯 Running example analyses..."
-python3 examples.py
-
 echo ""
 echo "=================================================="
 echo "  ✅ Setup Complete!"
