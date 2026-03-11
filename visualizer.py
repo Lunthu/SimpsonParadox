@@ -26,26 +26,37 @@ class CorrelationVisualizer:
         self.color_palette = color_palette or px.colors.qualitative.Set2
         
 
-    def _sample_for_plot(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _sample_for_plot(self, df: pd.DataFrame, cache_key: str = None) -> pd.DataFrame:
         """
-        Sample data for visualization if too large, maintaining distribution.
+        Sample data for visualization if too large. Uses caching to avoid re-sampling.
         
         Args:
             df: DataFrame to potentially sample
+            cache_key: Optional key for caching
             
         Returns:
             Sampled or original DataFrame
         """
+        # Check cache first
+        if cache_key and cache_key in self._sampled_cache:
+            return self._sampled_cache[cache_key]
+        
         if len(df) <= self.max_plot_points:
-            return df  # Small enough, use all data
+            result = df  # Small enough, use all data
+        else:
+            # Sample maintaining distribution
+            sample_fraction = self.max_plot_points / len(df)
+            result = df.sample(n=self.max_plot_points, random_state=42)
+            
+            # Only print on first sample
+            if cache_key and cache_key not in self._sampled_cache:
+                print(f"  📊 Sampled {self.max_plot_points:,} of {len(df):,} points for visualization ({sample_fraction:.1%})")
         
-        # Sample maintaining distribution
-        sample_fraction = self.max_plot_points / len(df)
-        sampled = df.sample(n=self.max_plot_points, random_state=42)
+        # Cache the result
+        if cache_key:
+            self._sampled_cache[cache_key] = result
         
-        print(f"  📊 Sampling {self.max_plot_points:,} of {len(df):,} points for visualization ({sample_fraction:.1%})")
-        
-        return sampled
+        return result
 
     def create_scatter_plot(self, 
                            metric_x: str, 

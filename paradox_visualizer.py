@@ -28,29 +28,40 @@ class ParadoxVisualizer:
         self.data = data
         self.max_plot_points = max_plot_points
         self.color_palette = color_palette or px.colors.qualitative.Bold
+        self._sampled_cache = {}  # Cache for sampled data
     
 
-    def _sample_for_plot(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _sample_for_plot(self, df: pd.DataFrame, cache_key: str = None) -> pd.DataFrame:
         """
-        Sample data for visualization if too large.
-        Maintains distribution for accurate visual representation.
+        Sample data for visualization if too large. Uses caching to avoid re-sampling.
         
         Args:
             df: DataFrame to potentially sample
+            cache_key: Optional key for caching (e.g., 'metric_x-metric_y-dimension')
             
         Returns:
             Sampled or original DataFrame
         """
+        # Check cache first
+        if cache_key and cache_key in self._sampled_cache:
+            return self._sampled_cache[cache_key]
+        
         if len(df) <= self.max_plot_points:
-            return df  # Small enough, use all data
+            result = df  # Small enough, use all data
+        else:
+            # Sample maintaining distribution
+            sample_fraction = self.max_plot_points / len(df)
+            result = df.sample(n=self.max_plot_points, random_state=42)
+            
+            # Only print on first sample
+            if cache_key and cache_key not in self._sampled_cache:
+                print(f"  📊 Sampled {self.max_plot_points:,} of {len(df):,} points for visualization ({sample_fraction:.1%})")
         
-        # Sample maintaining distribution
-        sample_fraction = self.max_plot_points / len(df)
-        sampled = df.sample(n=self.max_plot_points, random_state=42)
+        # Cache the result
+        if cache_key:
+            self._sampled_cache[cache_key] = result
         
-        print(f"  📊 Sampling {self.max_plot_points:,} of {len(df):,} points for paradox visualization ({sample_fraction:.1%})")
-        
-        return sampled
+        return result
 
     def visualize_simpsons_paradox(self, paradox: Dict) -> go.Figure:
         """
@@ -65,8 +76,9 @@ class ParadoxVisualizer:
         # Get full data for accurate calculations
         full_data = self.data[[metric_x, metric_y, dimension]].dropna()
         
-        # Sample for visualization
-        plot_data = self._sample_for_plot(full_data)
+        # Sample for visualization (with caching)
+        cache_key = f"simpson_{metric_x}_{metric_y}_{dimension}"
+        plot_data = self._sample_for_plot(full_data, cache_key=cache_key)
         
         # Create figure with subplots
         fig = make_subplots(
@@ -205,8 +217,9 @@ class ParadoxVisualizer:
         # Get full data for accurate calculations
         full_data = self.data[[metric_x, metric_y, moderator]].dropna()
         
-        # Sample for visualization
-        plot_data = self._sample_for_plot(full_data)
+        # Sample for visualization (with caching)
+        cache_key = f"interaction_{metric_x}_{metric_y}_{moderator}"
+        plot_data = self._sample_for_plot(full_data, cache_key=cache_key)
         
         # Create scatter with trend lines for each group
         fig = go.Figure()
@@ -277,7 +290,12 @@ class ParadoxVisualizer:
         metric_y = confounder_info['metric_y']
         confounder = confounder_info['confounder']
         
-        plot_data = self.data[[metric_x, metric_y, confounder]].dropna()
+        # Get full data for accurate calculations
+        full_data = self.data[[metric_x, metric_y, confounder]].dropna()
+        
+        # Sample for visualization (with caching)
+        cache_key = f"confounding_{metric_x}_{metric_y}_{confounder}"
+        plot_data = self._sample_for_plot(full_data, cache_key=cache_key)
         
         # Create side-by-side comparison
         fig = make_subplots(
@@ -315,12 +333,12 @@ class ParadoxVisualizer:
             row=1, col=2
         )
         
-        # Overall trend
+        # Overall trend (use full data for accuracy)
         try:
-            if plot_data[metric_x].nunique() > 1 and plot_data[metric_y].nunique() > 1:
-                z = np.polyfit(plot_data[metric_x], plot_data[metric_y], 1)
+            if full_data[metric_x].nunique() > 1 and full_data[metric_y].nunique() > 1:
+                z = np.polyfit(full_data[metric_x], full_data[metric_y], 1)
                 p = np.poly1d(z)
-                x_line = np.linspace(plot_data[metric_x].min(), plot_data[metric_x].max(), 100)
+                x_line = np.linspace(full_data[metric_x].min(), full_data[metric_x].max(), 100)
                 
                 fig.add_trace(
                     go.Scatter(
@@ -479,7 +497,10 @@ class ParadoxVisualizer:
         
         # Full data for calculations
         full_data = self.data[[metric_x, metric_y, dimension]].dropna()
-        plot_data = self._sample_for_plot(full_data)
+        
+        # Sample for visualization (with caching)
+        cache_key = f"reversal_{metric_x}_{metric_y}_{dimension}"
+        plot_data = self._sample_for_plot(full_data, cache_key=cache_key)
         
         # Create figure with subplots: individual groups on left, overall on right
         fig = make_subplots(
