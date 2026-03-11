@@ -18,7 +18,8 @@ class ParadoxDetector:
     def __init__(self, data: pd.DataFrame, 
                  metrics: List[str], 
                  dimensions: List[str],
-                 significance_level: float = 0.05):
+                 significance_level: float = 0.05,
+                 detection_sensitivity: str = 'moderate'):  # 'low', 'moderate', 'high'
         """
         Initialize paradox detector
         
@@ -32,7 +33,29 @@ class ParadoxDetector:
         self.metrics = metrics
         self.dimensions = dimensions
         self.significance_level = significance_level
+        self.detection_sensitivity = detection_sensitivity
         self.paradoxes = []
+        self.patterns = []
+        
+        # Set thresholds based on sensitivity level
+        if detection_sensitivity == 'low':
+            # Conservative - only strong, highly significant patterns
+            self.min_overall_correlation = 0.5  # Strong correlation required
+            self.min_group_correlation = 0.5    # Strong group correlation required
+            self.min_reversal_magnitude = 0.5   # Large reversal required
+            self.p_value_threshold = 0.01       # Highly significant
+        elif detection_sensitivity == 'high':
+            # Aggressive - detect even weak patterns
+            self.min_overall_correlation = 0.2  # Weak correlation OK
+            self.min_group_correlation = 0.2    # Weak group correlation OK
+            self.min_reversal_magnitude = 0.2   # Small reversal OK
+            self.p_value_threshold = 0.10       # Less strict significance
+        else:  # 'moderate' (default)
+            # Balanced approach
+            self.min_overall_correlation = 0.3  # Moderate correlation
+            self.min_group_correlation = 0.3    # Moderate group correlation
+            self.min_reversal_magnitude = 0.3   # Moderate reversal
+            self.p_value_threshold = 0.05       # Standard significance
         
     def detect_simpsons_paradox(self) -> List[Dict]:
         """
@@ -125,14 +148,24 @@ class ParadoxDetector:
             # Overall sign is opposite
             overall_opposite = overall_sign != group_signs[0]
             
-            # Both correlations are significant
-            overall_significant = overall_p < self.significance_level
+            # Check significance and strength based on sensitivity
+            overall_significant = overall_p < self.p_value_threshold
+            overall_strong_enough = abs(overall_corr) >= self.min_overall_correlation
+            
+            avg_group_corr = np.mean([g['correlation'] for g in group_corrs.values()])
+            groups_strong_enough = abs(avg_group_corr) >= self.min_group_correlation
+            
             groups_significant = np.mean([g['significant'] for g in group_corrs.values()]) > 0.5
             
-            if groups_agree and overall_opposite and overall_significant and groups_significant:
+            if (groups_agree and overall_opposite and 
+                overall_significant and groups_significant and
+                overall_strong_enough and groups_strong_enough):
                 # Calculate effect sizes
-                avg_group_corr = np.mean([g['correlation'] for g in group_corrs.values()])
                 reversal_magnitude = abs(overall_corr - avg_group_corr)
+                
+                # Check if reversal is large enough
+                if reversal_magnitude < self.min_reversal_magnitude:
+                    return None  # Reversal too small
                 
                 return {
                     'type': 'simpsons_paradox',

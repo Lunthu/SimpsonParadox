@@ -15,17 +15,43 @@ from typing import List, Dict, Optional
 class ParadoxVisualizer:
     """Create visualizations specifically for paradoxes and hidden patterns"""
     
-    def __init__(self, data: pd.DataFrame, color_palette: Optional[List[str]] = None):
+    def __init__(self, data: pd.DataFrame, max_plot_points: int = 1000, 
+                 color_palette: Optional[List[str]] = None):
         """
         Initialize paradox visualizer
         
         Args:
             data: DataFrame with analysis data
+            max_plot_points: Maximum points to show in visualizations
             color_palette: Custom color palette
         """
         self.data = data
+        self.max_plot_points = max_plot_points
         self.color_palette = color_palette or px.colors.qualitative.Bold
     
+
+    def _sample_for_plot(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Sample data for visualization if too large.
+        Maintains distribution for accurate visual representation.
+        
+        Args:
+            df: DataFrame to potentially sample
+            
+        Returns:
+            Sampled or original DataFrame
+        """
+        if len(df) <= self.max_plot_points:
+            return df  # Small enough, use all data
+        
+        # Sample maintaining distribution
+        sample_fraction = self.max_plot_points / len(df)
+        sampled = df.sample(n=self.max_plot_points, random_state=42)
+        
+        print(f"  📊 Sampling {self.max_plot_points:,} of {len(df):,} points for paradox visualization ({sample_fraction:.1%})")
+        
+        return sampled
+
     def visualize_simpsons_paradox(self, paradox: Dict) -> go.Figure:
         """
         Create visualization showing Simpson's Paradox
@@ -36,8 +62,11 @@ class ParadoxVisualizer:
         metric_y = paradox['metric_y']
         dimension = paradox['dimension']
         
-        # Clean data
-        plot_data = self.data[[metric_x, metric_y, dimension]].dropna()
+        # Get full data for accurate calculations
+        full_data = self.data[[metric_x, metric_y, dimension]].dropna()
+        
+        # Sample for visualization
+        plot_data = self._sample_for_plot(full_data)
         
         # Create figure with subplots
         fig = make_subplots(
@@ -65,14 +94,15 @@ class ParadoxVisualizer:
                 row=1, col=1
             )
             
-            # Group trend line
-            if len(group_df) >= 2:
+            # Group trend line (calculated on full group data for accuracy)
+            full_group_df = full_data[full_data[dimension] == group_name]
+            if len(full_group_df) >= 2:
                 try:
                     # Check for valid data (no NaN, sufficient variance)
-                    if group_df[metric_x].nunique() > 1 and group_df[metric_y].nunique() > 1:
-                        z = np.polyfit(group_df[metric_x], group_df[metric_y], 1)
+                    if full_group_df[metric_x].nunique() > 1 and full_group_df[metric_y].nunique() > 1:
+                        z = np.polyfit(full_group_df[metric_x], full_group_df[metric_y], 1)
                         p = np.poly1d(z)
-                        x_line = np.linspace(group_df[metric_x].min(), group_df[metric_x].max(), 100)
+                        x_line = np.linspace(full_group_df[metric_x].min(), full_group_df[metric_x].max(), 100)
                         
                         fig.add_trace(
                             go.Scatter(
@@ -104,12 +134,12 @@ class ParadoxVisualizer:
             row=1, col=2
         )
         
-        # Overall trend line
+        # Overall trend line (use full data for accuracy)
         try:
-            if plot_data[metric_x].nunique() > 1 and plot_data[metric_y].nunique() > 1:
-                z_overall = np.polyfit(plot_data[metric_x], plot_data[metric_y], 1)
+            if full_data[metric_x].nunique() > 1 and full_data[metric_y].nunique() > 1:
+                z_overall = np.polyfit(full_data[metric_x], full_data[metric_y], 1)
                 p_overall = np.poly1d(z_overall)
-                x_line_overall = np.linspace(plot_data[metric_x].min(), plot_data[metric_x].max(), 100)
+                x_line_overall = np.linspace(full_data[metric_x].min(), full_data[metric_x].max(), 100)
                 
                 fig.add_trace(
                     go.Scatter(
@@ -172,7 +202,11 @@ class ParadoxVisualizer:
         metric_y = interaction['metric_y']
         moderator = interaction['moderator']
         
-        plot_data = self.data[[metric_x, metric_y, moderator]].dropna()
+        # Get full data for accurate calculations
+        full_data = self.data[[metric_x, metric_y, moderator]].dropna()
+        
+        # Sample for visualization
+        plot_data = self._sample_for_plot(full_data)
         
         # Create scatter with trend lines for each group
         fig = go.Figure()
@@ -191,12 +225,13 @@ class ParadoxVisualizer:
             )
             
             # Trend line
-            if len(group_df) >= 2:
+            full_group_df = full_data[full_data[moderator] == group_name]
+            if len(full_group_df) >= 2:
                 try:
-                    if group_df[metric_x].nunique() > 1 and group_df[metric_y].nunique() > 1:
-                        z = np.polyfit(group_df[metric_x], group_df[metric_y], 1)
+                    if full_group_df[metric_x].nunique() > 1 and full_group_df[metric_y].nunique() > 1:
+                        z = np.polyfit(full_group_df[metric_x], full_group_df[metric_y], 1)
                         p = np.poly1d(z)
-                        x_line = np.linspace(group_df[metric_x].min(), group_df[metric_x].max(), 100)
+                        x_line = np.linspace(full_group_df[metric_x].min(), full_group_df[metric_x].max(), 100)
                         
                         fig.add_trace(
                             go.Scatter(
@@ -436,115 +471,15 @@ class ParadoxVisualizer:
 
     def visualize_subgroup_reversal(self, reversal: Dict) -> go.Figure:
         """
-        Visualize subgroup reversal showing all groups with reversed ones highlighted
-        
-        Args:
-            reversal: Reversal pattern dictionary
-        """
-        metric_x = reversal['metric_x']
-        metric_y = reversal['metric_y']
-        dimension = reversal['dimension']
-        
-        plot_data = self.data[[metric_x, metric_y, dimension]].dropna()
-        
-        # Create figure
-        fig = go.Figure()
-        
-        # Get all groups info
-        all_groups = reversal.get('all_groups', [])
-        reversed_group_names = [g['group'] for g in reversal['reversed_groups']]
-        
-        # Plot each group with different styling for reversed ones
-        for group_info in all_groups:
-            group_name = group_info['group']
-            is_reversed = group_info.get('is_reversed', False)
-            group_df = plot_data[plot_data[dimension] == group_name]
-            
-            if len(group_df) < 2:
-                continue
-            
-            # Scatter points
-            marker_props = {
-                'size': 10 if is_reversed else 8,
-                'opacity': 0.8 if is_reversed else 0.5,
-                'symbol': 'star' if is_reversed else 'circle'
-            }
-            
-            fig.add_trace(
-                go.Scatter(
-                    x=group_df[metric_x],
-                    y=group_df[metric_y],
-                    mode='markers',
-                    name=f"{'⚠️ ' if is_reversed else ''}{group_name}",
-                    marker=marker_props,
-                    legendgroup=str(group_name)
-                )
-            )
-            
-            # Trend line
-            if len(group_df) >= 2:
-                try:
-                    if group_df[metric_x].nunique() > 1 and group_df[metric_y].nunique() > 1:
-                        z = np.polyfit(group_df[metric_x], group_df[metric_y], 1)
-                        p = np.poly1d(z)
-                        x_line = np.linspace(group_df[metric_x].min(), group_df[metric_x].max(), 100)
-                        
-                        line_props = {
-                            'width': 3 if is_reversed else 2,
-                            'dash': 'solid' if is_reversed else 'dot'
-                        }
-                        
-                        fig.add_trace(
-                            go.Scatter(
-                                x=x_line,
-                                y=p(x_line),
-                                mode='lines',
-                                name=f'{group_name} trend',
-                                line=line_props,
-                                legendgroup=str(group_name),
-                                showlegend=False
-                            )
-                        )
-                except (np.linalg.LinAlgError, ValueError):
-                    pass
-        
-        # Update layout
-        overall_corr = reversal['overall_correlation']
-        num_reversed = len(reversal['reversed_groups'])
-        
-        title_text = (
-            f"{metric_x} vs {metric_y} - Subgroup Reversal<br>"
-            f"<sub>Overall: r={overall_corr:+.3f} | "
-            f"{num_reversed} group(s) show OPPOSITE direction (⚠️)</sub>"
-        )
-        
-        fig.update_layout(
-            title=title_text,
-            xaxis_title=metric_x,
-            yaxis_title=metric_y,
-            template='plotly_white',
-            height=500,
-            legend=dict(
-                orientation="v",
-                yanchor="top",
-                y=1,
-                xanchor="left",
-                x=1.02
-            )
-        )
-        
-        return fig
-
-    
-    def visualize_subgroup_reversal(self, reversal: Dict) -> go.Figure:
-        """
         Visualize subgroup reversal where some groups show opposite correlation
         """
         metric_x = reversal['metric_x']
         metric_y = reversal['metric_y']
         dimension = reversal['dimension']
         
-        plot_data = self.data[[metric_x, metric_y, dimension]].dropna()
+        # Full data for calculations
+        full_data = self.data[[metric_x, metric_y, dimension]].dropna()
+        plot_data = self._sample_for_plot(full_data)
         
         # Create figure with subplots: individual groups on left, overall on right
         fig = make_subplots(
@@ -587,13 +522,14 @@ class ParadoxVisualizer:
                 row=1, col=1
             )
             
-            # Group trend line
-            if len(group_df) >= 2:
+            # Group trend line (use full group data for accuracy)
+            full_group_df = full_data[full_data[dimension] == group_name]
+            if len(full_group_df) >= 2:
                 try:
-                    if group_df[metric_x].nunique() > 1 and group_df[metric_y].nunique() > 1:
-                        z = np.polyfit(group_df[metric_x], group_df[metric_y], 1)
+                    if full_group_df[metric_x].nunique() > 1 and full_group_df[metric_y].nunique() > 1:
+                        z = np.polyfit(full_group_df[metric_x], full_group_df[metric_y], 1)
+                        x_line = np.linspace(full_group_df[metric_x].min(), full_group_df[metric_x].max(), 100)
                         p = np.poly1d(z)
-                        x_line = np.linspace(group_df[metric_x].min(), group_df[metric_x].max(), 100)
                         
                         # Thicker line for reversed groups
                         line_width = 4 if is_reversed else 2
@@ -628,12 +564,12 @@ class ParadoxVisualizer:
             row=1, col=2
         )
         
-        # Overall trend line
+        # Overall trend line (use full data for accuracy)
         try:
-            if plot_data[metric_x].nunique() > 1 and plot_data[metric_y].nunique() > 1:
-                z_overall = np.polyfit(plot_data[metric_x], plot_data[metric_y], 1)
+            if full_data[metric_x].nunique() > 1 and full_data[metric_y].nunique() > 1:
+                z_overall = np.polyfit(full_data[metric_x], full_data[metric_y], 1)
                 p_overall = np.poly1d(z_overall)
-                x_line_overall = np.linspace(plot_data[metric_x].min(), plot_data[metric_x].max(), 100)
+                x_line_overall = np.linspace(full_data[metric_x].min(), full_data[metric_x].max(), 100)
                 
                 fig.add_trace(
                     go.Scatter(

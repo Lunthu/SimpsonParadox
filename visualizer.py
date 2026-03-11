@@ -25,6 +25,28 @@ class CorrelationVisualizer:
         self.data = data
         self.color_palette = color_palette or px.colors.qualitative.Set2
         
+
+    def _sample_for_plot(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Sample data for visualization if too large, maintaining distribution.
+        
+        Args:
+            df: DataFrame to potentially sample
+            
+        Returns:
+            Sampled or original DataFrame
+        """
+        if len(df) <= self.max_plot_points:
+            return df  # Small enough, use all data
+        
+        # Sample maintaining distribution
+        sample_fraction = self.max_plot_points / len(df)
+        sampled = df.sample(n=self.max_plot_points, random_state=42)
+        
+        print(f"  📊 Sampling {self.max_plot_points:,} of {len(df):,} points for visualization ({sample_fraction:.1%})")
+        
+        return sampled
+
     def create_scatter_plot(self, 
                            metric_x: str, 
                            metric_y: str,

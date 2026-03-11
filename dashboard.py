@@ -36,7 +36,7 @@ class CorrelationDashboard:
             suppress_callback_exceptions=True
         )
         
-        self.app.title = "Dataset Patterns Overview"
+        self.app.title = "Correlation Analysis Dashboard"
         
         # Build layout
         self.app.layout = self._create_layout()
@@ -55,9 +55,9 @@ class CorrelationDashboard:
         header = dbc.Container([
             dbc.Row([
                 dbc.Col([
-                    html.H1("Dataset Patterns Overview", 
+                    html.H1("📊 Correlation Analysis Dashboard", 
                            className="text-primary mb-3"),
-                    html.P("Correlation detection and pattern analysis",
+                    html.P("Automated correlation detection and pattern analysis",
                           className="lead text-muted")
                 ])
             ])
@@ -104,11 +104,11 @@ class CorrelationDashboard:
         # Tabs for different views
         tabs = dbc.Container([
             dbc.Tabs([
-                dbc.Tab(label="Hidden Patterns", tab_id="hidden", class_name="fw-bold"),
-                dbc.Tab(label="Correlation Matrix", tab_id="matrix"),
-                dbc.Tab(label="Scatter Plots", tab_id="scatter"),
-                dbc.Tab(label="Pattern Analysis", tab_id="patterns"),
-                dbc.Tab(label="Distribution Analysis", tab_id="distribution"),
+                dbc.Tab(label="🚨 Hidden Patterns", tab_id="hidden", class_name="fw-bold"),
+                dbc.Tab(label="📈 Correlation Matrix", tab_id="matrix"),
+                dbc.Tab(label="🔍 Scatter Plots", tab_id="scatter"),
+                dbc.Tab(label="⚡ Pattern Analysis", tab_id="patterns"),
+                dbc.Tab(label="📊 Distribution Analysis", tab_id="distribution"),
             ], id="tabs", active_tab="hidden", className="mb-3"),
             
             html.Div(id="tab-content")
@@ -179,7 +179,7 @@ class CorrelationDashboard:
         if not hidden_patterns or hidden_patterns.get('total_patterns', 0) == 0:
             return dbc.Container([
                 dbc.Alert([
-                    html.H4("No Hidden Patterns Detected", className="alert-heading"),
+                    html.H4("🔍 No Hidden Patterns Detected", className="alert-heading"),
                     html.P("No Simpson's Paradoxes or confounding variables found in this dataset."),
                     html.Hr(),
                     html.P("This could mean:"),
@@ -225,7 +225,7 @@ class CorrelationDashboard:
             # Create enriched explanation combining description and key metrics
             enriched_explanation = (
                 f"{paradox['description']}\n\n"
-                f"Analysis Details:\n"
+                f"📊 Analysis Details:\n"
                 f"• Dimension analyzed: {paradox['dimension']}\n"
                 f"• Overall correlation: {paradox['overall_correlation']:+.3f}\n"
                 f"• Average group correlation: {paradox['average_group_correlation']:+.3f}\n"
@@ -248,13 +248,13 @@ class CorrelationDashboard:
                             ], width=12, lg=7),
                             dbc.Col([
                                 html.Div([
-                                    html.H5("Pattern Analysis", className="mb-3"),
+                                    html.H5("📝 Pattern Analysis", className="mb-3"),
                                     html.Pre(
                                         enriched_explanation,
                                         style={'white-space': 'pre-wrap', 'font-size': '0.85rem', 'line-height': '1.5'},
                                         className="mb-3 p-3 bg-light rounded border"
                                     ),
-                                    html.H6("Group Correlations", className="mb-2"),
+                                    html.H6("🔢 Group Correlations", className="mb-2"),
                                     html.Ul(group_details, style={'font-size': '0.9rem'})
                                 ], className="h-100")
                             ], width=12, lg=5)
@@ -272,7 +272,7 @@ class CorrelationDashboard:
             # Create enriched explanation combining description and key metrics
             enriched_explanation = (
                 f"{interaction['description']}\n\n"
-                f"Analysis Details:\n"
+                f"📊 Analysis Details:\n"
                 f"• Moderator variable: {interaction['moderator']}\n"
                 f"• Correlation range: {interaction['correlation_range']:.3f}\n"
                 f"• Correlation std dev: {interaction['correlation_std']:.3f}\n"
@@ -295,7 +295,7 @@ class CorrelationDashboard:
                             ], width=12, lg=7),
                             dbc.Col([
                                 html.Div([
-                                    html.H5("Pattern Analysis", className="mb-3"),
+                                    html.H5("📝 Pattern Analysis", className="mb-3"),
                                     html.Pre(
                                         enriched_explanation,
                                         style={'white-space': 'pre-wrap', 'font-size': '0.85rem', 'line-height': '1.5'},
@@ -317,7 +317,7 @@ class CorrelationDashboard:
             # Create enriched explanation combining description and key metrics
             enriched_explanation = (
                 f"{conf['description']}\n\n"
-                f"Analysis Details:\n"
+                f"📊 Analysis Details:\n"
                 f"• Confounding variable: {conf['confounder']}\n"
                 f"• Overall correlation: {conf['overall_correlation']:.3f}\n"
                 f"• Within-group correlation: {conf['within_group_correlation']:.3f}\n"
@@ -340,7 +340,7 @@ class CorrelationDashboard:
                             ], width=12, lg=7),
                             dbc.Col([
                                 html.Div([
-                                    html.H5("Pattern Analysis", className="mb-3"),
+                                    html.H5("📝 Pattern Analysis", className="mb-3"),
                                     html.Pre(
                                         enriched_explanation,
                                         style={'white-space': 'pre-wrap', 'font-size': '0.85rem', 'line-height': '1.5'},
@@ -362,7 +362,7 @@ class CorrelationDashboard:
             # Create enriched explanation
             enriched_explanation = (
                 f"{reversal['description']}\n\n"
-                f"Analysis Details:\n"
+                f"📊 Analysis Details:\n"
                 f"• Dimension: {reversal['dimension']}\n"
                 f"• Overall correlation: {reversal['overall_correlation']:+.3f}\n"
                 f"• Overall p-value: {reversal['overall_p_value']:.4f}\n"
@@ -396,13 +396,13 @@ class CorrelationDashboard:
                             ], width=12, lg=7),
                             dbc.Col([
                                 html.Div([
-                                    html.H5("Pattern Analysis", className="mb-3"),
+                                    html.H5("📝 Pattern Analysis", className="mb-3"),
                                     html.Pre(
                                         enriched_explanation,
                                         style={'white-space': 'pre-wrap', 'font-size': '0.85rem', 'line-height': '1.5'},
                                         className="mb-3 p-3 bg-light rounded border"
                                     ),
-                                    html.H6("⚠Groups Showing Reversal", className="mb-2 mt-4 text-danger"),
+                                    html.H6("⚠️ Groups Showing Reversal", className="mb-2 mt-4 text-danger"),
                                     html.Ul(reversed_details, style={'font-size': '0.9rem'})
                                 ], className="h-100")
                             ], width=12, lg=5)
@@ -413,7 +413,7 @@ class CorrelationDashboard:
         
         return dbc.Container([
             dbc.Alert([
-                html.Strong(f"Displaying {hidden_patterns.get('total_patterns', 0)} hidden patterns"),
+                html.Strong(f"🚨 Displaying ALL {hidden_patterns.get('total_patterns', 0)} hidden patterns"),
                 html.Br(),
                 html.Small(f"Simpson's Paradoxes: {len(simpsons)}, "
                           f"Confounding: {len(confounders)}, "
@@ -523,7 +523,7 @@ class CorrelationDashboard:
         # Dimension selector control
         dimension_control = dbc.Card([
             dbc.CardBody([
-                html.H5("Dimension Selection", className="mb-3"),
+                html.H5("📍 Dimension Selection", className="mb-3"),
                 dbc.Row([
                     dbc.Col([
                         html.Label("Select Dimension for Color Mapping:", 
@@ -542,7 +542,7 @@ class CorrelationDashboard:
         
         return dbc.Container([
             dbc.Alert([
-                html.Strong(f"Showing {len(all_correlations)} significant correlations"),
+                html.Strong(f"📊 Showing all {len(all_correlations)} significant correlations"),
                 html.Br(),
                 html.Small(f"Correlation threshold: {self.analyzer.correlation_threshold}")
             ], color="info", className="mb-3"),
@@ -662,7 +662,7 @@ class CorrelationDashboard:
         # Dimension selector control
         dimension_control = dbc.Card([
             dbc.CardBody([
-                html.H5("Dimension Selection", className="mb-3"),
+                html.H5("📍 Dimension Selection", className="mb-3"),
                 dbc.Row([
                     dbc.Col([
                         html.Label("Select Dimension for Distribution Analysis:", 
@@ -756,4 +756,6 @@ class CorrelationDashboard:
         print(f"🔍 Found {len(self.analyzer.correlations)} correlations")
         print(f"⚡ Detected {len(self.analyzer.patterns)} patterns\n")
         
-        self.app.run(debug=debug, port=port, host='0.0.0.0')
+        # Disable reloader to prevent double execution of analysis
+        # Dev tools will still work for debugging UI
+        self.app.run(debug=debug, port=port, host='0.0.0.0', use_reloader=False)

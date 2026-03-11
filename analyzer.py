@@ -16,27 +16,41 @@ warnings.filterwarnings('ignore')
 class CorrelationAnalyzer:
     """Main class for correlation analysis and pattern detection"""
     
-    def __init__(self, filepath: str, correlation_threshold: float = 0.5, 
-                 significance_level: float = 0.05):
+    def __init__(self, 
+                 filepath: str, 
+                 correlation_threshold: float = 0.5,
+                 significance_level: float = 0.05,
+                 dimensions: List[str] = None,
+                 metrics: List[str] = None,
+                 detection_sensitivity: str = 'moderate',
+                 max_plot_points: int = 5000):
         """
         Initialize the analyzer
         
         Args:
-            filepath: Path to dataset (CSV, XLSX, etc.)
-            correlation_threshold: Minimum correlation coefficient to consider
-            significance_level: P-value threshold for statistical significance
+            filepath: Path to dataset
+            correlation_threshold: Minimum correlation coefficient
+            significance_level: P-value threshold
+            dimensions: Optional dimension columns
+            metrics: Optional metric columns
+            detection_sensitivity: 'low', 'moderate', or 'high'
+            max_plot_points: Max points in visualizations
         """
         self.filepath = filepath
         self.correlation_threshold = correlation_threshold
         self.significance_level = significance_level
+        self.detection_sensitivity = detection_sensitivity
+        self.max_plot_points = max_plot_points
+        self.specified_dimensions = dimensions
+        self.specified_metrics = metrics
         self.data = None
         self.metrics = []
         self.dimensions = []
         self.correlations = {}
         self.patterns = []
         self.paradox_detector = None
-        self.hidden_patterns = {}
-        
+
+
     def load_data(self) -> pd.DataFrame:
         """Load dataset from various file formats"""
         file_ext = self.filepath.lower().split('.')[-1]
@@ -54,6 +68,12 @@ class CorrelationAnalyzer:
                 raise ValueError(f"Unsupported file format: {file_ext}")
             
             print(f"✓ Loaded {len(self.data)} rows and {len(self.data.columns)} columns")
+            
+            # Inform about sampling if dataset is large
+            if len(self.data) > self.max_plot_points:
+                print(f"  📊 Large dataset detected: Visualizations will sample {self.max_plot_points:,} points")
+                print(f"  ✓ Correlations and trend lines use full {len(self.data):,} rows for accuracy")
+            
             return self.data
         except Exception as e:
             raise Exception(f"Error loading data: {str(e)}")
@@ -256,7 +276,8 @@ class CorrelationAnalyzer:
             data=self.data,
             metrics=self.metrics,
             dimensions=self.dimensions,
-            significance_level=self.significance_level
+            significance_level=self.significance_level,
+            detection_sensitivity=self.detection_sensitivity
         )
         
         # Run all detection methods

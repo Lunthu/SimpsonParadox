@@ -5,6 +5,7 @@ Run correlation analysis and launch dashboard
 
 import sys
 import argparse
+import os
 from analyzer import CorrelationAnalyzer
 from dashboard import CorrelationDashboard
 

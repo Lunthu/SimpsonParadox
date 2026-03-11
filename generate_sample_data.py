@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 
-def generate_sample_data(n_rows: int = 500, filename: str = "sample_data.csv"):
+def generate_sample_data(n_rows: int = 100000, filename: str = "sample_data_5.csv"):
     """
     Generate sample marketing analytics data with Simpson's Paradox examples
     
@@ -15,7 +15,7 @@ def generate_sample_data(n_rows: int = 500, filename: str = "sample_data.csv"):
         n_rows: Number of rows to generate
         filename: Output filename
     """
-    np.random.seed(42)
+    np.random.seed(57)
     
     # Dimensions
     traffic_types = ['Paid', 'Organic', 'Email', 'Social', 'Direct']
