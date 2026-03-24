@@ -23,24 +23,27 @@ class CorrelationAnalyzer:
                  dimensions: List[str] = None,
                  metrics: List[str] = None,
                  detection_sensitivity: str = 'moderate',
-                 max_plot_points: int = 1000):
+                 max_plot_points: int = 5000,
+                 custom_detection_threshold: float = None):
         """
         Initialize the analyzer
         
         Args:
             filepath: Path to dataset
-            correlation_threshold: Minimum correlation coefficient
+            correlation_threshold: Minimum correlation coefficient for display
             significance_level: P-value threshold
             dimensions: Optional dimension columns
             metrics: Optional metric columns
-            detection_sensitivity: 'low', 'moderate', or 'high'
+            detection_sensitivity: 'low', 'moderate', 'high', or 'custom'
             max_plot_points: Max points in visualizations
+            custom_detection_threshold: Custom threshold when sensitivity='custom'
         """
         self.filepath = filepath
         self.correlation_threshold = correlation_threshold
         self.significance_level = significance_level
         self.detection_sensitivity = detection_sensitivity
         self.max_plot_points = max_plot_points
+        self.custom_detection_threshold = custom_detection_threshold
         self.specified_dimensions = dimensions
         self.specified_metrics = metrics
         self.data = None
@@ -277,7 +280,8 @@ class CorrelationAnalyzer:
             metrics=self.metrics,
             dimensions=self.dimensions,
             significance_level=self.significance_level,
-            detection_sensitivity=self.detection_sensitivity
+            detection_sensitivity=self.detection_sensitivity,
+            custom_threshold=self.custom_detection_threshold
         )
         
         # Run all detection methods

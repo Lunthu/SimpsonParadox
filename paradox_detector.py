@@ -19,7 +19,8 @@ class ParadoxDetector:
                  metrics: List[str], 
                  dimensions: List[str],
                  significance_level: float = 0.05,
-                 detection_sensitivity: str = 'moderate'):  # 'low', 'moderate', 'high'
+                 detection_sensitivity: str = 'moderate',
+                 custom_threshold: float = None):
         """
         Initialize paradox detector
         
@@ -28,6 +29,8 @@ class ParadoxDetector:
             metrics: List of metric column names
             dimensions: List of dimension column names
             significance_level: P-value threshold
+            detection_sensitivity: 'low', 'moderate', 'high', or 'custom'
+            custom_threshold: When sensitivity='custom', use this threshold
         """
         self.data = data
         self.metrics = metrics
@@ -37,25 +40,50 @@ class ParadoxDetector:
         self.paradoxes = []
         self.patterns = []
         
+        print(f"   [DEBUG] Initializing ParadoxDetector:")
+        print(f"   [DEBUG]   detection_sensitivity = '{detection_sensitivity}'")
+        print(f"   [DEBUG]   custom_threshold = {custom_threshold}")
+        
         # Set thresholds based on sensitivity level
-        if detection_sensitivity == 'low':
+        if detection_sensitivity == 'custom' and custom_threshold is not None:
+            # Use custom threshold (matches correlation_threshold)
+            self.min_overall_correlation = custom_threshold
+            self.min_group_correlation = custom_threshold
+            self.min_reversal_magnitude = max(0.2, custom_threshold * 0.5)  # At least 0.2
+            # Adjust p-value based on threshold strictness
+            if custom_threshold >= 0.7:
+                self.p_value_threshold = 0.01  # Very strict threshold needs high significance
+            elif custom_threshold >= 0.5:
+                self.p_value_threshold = 0.01
+            else:
+                self.p_value_threshold = 0.05
+            print(f"   ✓ Using custom threshold: min |r| = {custom_threshold:.2f}, p < {self.p_value_threshold}")
+        elif detection_sensitivity == 'low':
             # Conservative - only strong, highly significant patterns
             self.min_overall_correlation = 0.5  # Strong correlation required
             self.min_group_correlation = 0.5    # Strong group correlation required
             self.min_reversal_magnitude = 0.5   # Large reversal required
             self.p_value_threshold = 0.01       # Highly significant
+            print(f"   ✓ Using LOW sensitivity: min |r| = 0.5, p < 0.01")
         elif detection_sensitivity == 'high':
             # Aggressive - detect even weak patterns
             self.min_overall_correlation = 0.2  # Weak correlation OK
             self.min_group_correlation = 0.2    # Weak group correlation OK
             self.min_reversal_magnitude = 0.2   # Small reversal OK
             self.p_value_threshold = 0.10       # Less strict significance
+            print(f"   ✓ Using HIGH sensitivity: min |r| = 0.2, p < 0.10")
         else:  # 'moderate' (default)
             # Balanced approach
             self.min_overall_correlation = 0.3  # Moderate correlation
             self.min_group_correlation = 0.3    # Moderate group correlation
             self.min_reversal_magnitude = 0.3   # Moderate reversal
             self.p_value_threshold = 0.05       # Standard significance
+            print(f"   ✓ Using MODERATE sensitivity: min |r| = 0.3, p < 0.05")
+        
+        print(f"   [DEBUG] Final thresholds set:")
+        print(f"   [DEBUG]   min_overall_correlation = {self.min_overall_correlation}")
+        print(f"   [DEBUG]   min_group_correlation = {self.min_group_correlation}")
+        print(f"   [DEBUG]   p_value_threshold = {self.p_value_threshold}")
         
     def detect_simpsons_paradox(self) -> List[Dict]:
         """
@@ -188,7 +216,13 @@ class ParadoxDetector:
         if len(group_signs) >= 3:
             majority_sign = 1 if np.sum(group_signs > 0) > len(group_signs) / 2 else -1
             
-            if overall_sign != majority_sign and overall_p < self.significance_level:
+            # Check if overall correlation meets threshold requirements
+            overall_strong_enough = abs(overall_corr) >= self.min_overall_correlation
+            overall_significant = overall_p < self.p_value_threshold
+            
+            if (overall_sign != majority_sign and 
+                overall_significant and 
+                overall_strong_enough):
                 avg_group_corr = np.mean([g['correlation'] for g in group_corrs.values()])
                 reversal_magnitude = abs(overall_corr - avg_group_corr)
                 
@@ -300,7 +334,12 @@ class ParadoxDetector:
         avg_within_corr = np.mean(within_group_corrs)
         
         # Confounding detected: strong overall correlation weakens substantially within groups
-        if abs(overall_corr) > 0.4 and abs(avg_within_corr) < 0.2:
+        # Use configured thresholds instead of hardcoded values
+        overall_strong = abs(overall_corr) >= self.min_overall_correlation
+        within_weak = abs(avg_within_corr) < (self.min_overall_correlation * 0.5)  # Half the threshold
+        attenuation_large = abs(overall_corr - avg_within_corr) >= (self.min_overall_correlation * 0.5)
+        
+        if overall_strong and within_weak and attenuation_large:
             return {
                 'type': 'confounding_variable',
                 'metric_x': metric_x,
@@ -371,11 +410,25 @@ class ParadoxDetector:
         if len(group_corrs) < 2:
             return None
         
+        # Calculate overall correlation for threshold check
+        overall_corr, overall_p = stats.pearsonr(
+            clean_data[metric_x],
+            clean_data[metric_y]
+        )
+        
+        # Check if overall correlation meets minimum threshold
+        if abs(overall_corr) < self.min_overall_correlation:
+            return None  # Overall correlation too weak
+        
         # Strong interaction: correlations vary substantially across groups
+        # Use configurable threshold
+        min_interaction_std = self.min_overall_correlation * 0.5  # e.g., 0.425 for threshold 0.85
+        min_interaction_range = self.min_overall_correlation * 0.7  # e.g., 0.595 for threshold 0.85
+        
         corr_std = np.std(group_corrs)
         corr_range = max(group_corrs) - min(group_corrs)
         
-        if corr_std > 0.3 or corr_range > 0.6:
+        if corr_std > min_interaction_std or corr_range > min_interaction_range:
             strongest_group = max(group_info.items(), key=lambda x: abs(x[1]['correlation']))
             weakest_group = min(group_info.items(), key=lambda x: abs(x[1]['correlation']))
             
@@ -437,7 +490,8 @@ class ParadoxDetector:
             clean_data[metric_y]
         )
         
-        if overall_p >= self.significance_level or abs(overall_corr) < 0.3:
+        # Check if overall correlation meets minimum threshold
+        if overall_p >= self.p_value_threshold or abs(overall_corr) < self.min_overall_correlation:
             return None
         
         # Check each group
@@ -469,9 +523,12 @@ class ParadoxDetector:
                         'is_reversed': False
                     }
                     
-                    # Check for reversal
-                    if (np.sign(group_corr) != np.sign(overall_corr) and 
-                        group_p < self.significance_level):
+                    # Check for reversal - use configured thresholds
+                    reversal_strong = abs(group_corr) >= self.min_group_correlation
+                    reversal_opposite_sign = np.sign(group_corr) != np.sign(overall_corr)
+                    reversal_significant = group_p < self.p_value_threshold
+                    
+                    if reversal_opposite_sign and reversal_significant and reversal_strong:
                         group_info['is_reversed'] = True
                         reversed_groups.append(group_info)
                     

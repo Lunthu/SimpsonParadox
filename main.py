@@ -19,8 +19,9 @@ def main():
         epilog="""
 Examples:
   python main.py data.csv
-  python main.py data.xlsx --correlation-threshold 0.6
-  python main.py data.csv --dimensions "Traffic Type" "Campaign" --port 8080
+  python main.py data.csv --correlation-threshold 0.85 --sensitivity custom
+  python main.py data.csv --sensitivity high --port 8080
+  python main.py data.csv --dimensions "Traffic Type" "Campaign"
         """
     )
     
@@ -37,6 +38,12 @@ Examples:
                        help='Dashboard port (default: 8050)')
     parser.add_argument('--no-debug', action='store_true',
                        help='Disable debug mode')
+    parser.add_argument('--sensitivity', '-s', 
+                       choices=['low', 'moderate', 'high', 'custom'],
+                       default='moderate',
+                       help='Pattern detection sensitivity: low (r≥0.5, p<0.01), moderate (r≥0.3, p<0.05), high (r≥0.2, p<0.10), custom (uses --correlation-threshold) (default: moderate)')
+    parser.add_argument('--max-plot-points', type=int, default=5000,
+                       help='Maximum points for visualizations (default: 5000)')
     
     args = parser.parse_args()
     
@@ -46,10 +53,27 @@ Examples:
     
     # Step 1: Initialize analyzer
     print(f"\n📁 Loading data from: {args.filepath}")
+    
+    # Smart threshold alignment:
+    # If user sets --correlation-threshold but not --sensitivity explicitly,
+    # automatically use that threshold for pattern detection too
+    custom_threshold = None
+    detection_sensitivity = args.sensitivity
+    
+    # Check if correlation threshold is non-default
+    if args.correlation_threshold != 0.5:
+        # Use 'custom' mode to align detection with correlation threshold
+        custom_threshold = args.correlation_threshold
+        detection_sensitivity = 'custom'
+        print(f"  🎯 Aligning pattern detection threshold to {args.correlation_threshold:.2f}")
+    
     analyzer = CorrelationAnalyzer(
         filepath=args.filepath,
         correlation_threshold=args.correlation_threshold,
-        significance_level=args.significance_level
+        significance_level=args.significance_level,
+        detection_sensitivity=detection_sensitivity,
+        max_plot_points=args.max_plot_points,
+        custom_detection_threshold=custom_threshold
     )
     
     # Step 2: Load data
@@ -84,7 +108,12 @@ Examples:
         analyzer.detect_patterns(dimension)
     
     # Step 6: Detect hidden patterns (Simpson's Paradox, etc.)
-    print("\n🔍 Detecting hidden patterns (Simpson's Paradox, confounding, etc.)...")
+    print("\n🔍 ADVANCED PATTERN DETECTION")
+    if detection_sensitivity == 'custom':
+        print(f"   Detection threshold: r ≥ {custom_threshold:.2f} (aligned with correlation threshold)")
+    else:
+        print(f"   Detection sensitivity: {detection_sensitivity.upper()}")
+    print(f"   Detecting hidden patterns (Simpson's Paradox, confounding, etc.)...")
     analyzer.detect_hidden_patterns()
     
     # Step 7: Display summary
@@ -99,9 +128,10 @@ Examples:
     print(f"Correlations Found:  {summary['correlations_found']}")
     print(f"Patterns Detected:   {summary['patterns_detected']}")
     print(f"\n🚨 HIDDEN PATTERNS:")
-    print(f"Simpson's Paradoxes: {summary.get('simpsons_paradox_count', 0)}")
-    print(f"Confounding Vars:    {summary.get('confounding_count', 0)}")
-    print(f"Interaction Effects: {summary.get('interaction_count', 0)}")
+    print(f"Simpson's Paradoxes:  {summary.get('simpsons_paradox_count', 0)}")
+    print(f"Confounding Vars:     {summary.get('confounding_count', 0)}")
+    print(f"Interaction Effects:  {summary.get('interaction_count', 0)}")
+    print(f"Subgroup Reversals:   {summary.get('subgroup_reversal_count', 0)}")
     
     if summary['top_correlation']:
         top = summary['top_correlation']
