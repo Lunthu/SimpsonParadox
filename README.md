@@ -1,17 +1,17 @@
-# 🔍 Advanced Correlation Analysis Dashboard with Simpson's Paradox Detection
+# Hidden Patterns Dashboard with Simpson's Paradox Detection
 
 **A Python application for discovering hidden patterns in your data that standard correlation analysis misses.**
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 ### Core Capabilities
-- ✅ **Automatic Pattern Detection**: Finds Simpson's Paradox, confounding, interactions, and reversals
-- ✅ **Interactive Dashboard**: Professional Plotly/Dash interface with multiple tabs
-- ✅ **Visual + Text Integration**: Side-by-side visualizations with detailed explanations
-- ✅ **Complete Analysis**: Shows ALL significant correlations and patterns (no artificial limits)
-- ✅ **Production Ready**: Robust error handling for any dataset
+- **Automatic Pattern Detection**: Finds Simpson's Paradox, confounding, interactions, and reversals
+- **Interactive Dashboard**: Professional Plotly/Dash interface with multiple tabs
+- **Visual + Text Integration**: Side-by-side visualizations with detailed explanations
+- **Complete Analysis**: Shows ALL significant correlations and patterns (no artificial limits)
+- **Production Ready**: Robust error handling for any dataset
 
 ### Analysis Features
 - **Statistical Rigor**: Pearson correlation with p-value testing
@@ -22,7 +22,7 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -60,10 +60,10 @@ python main.py your_data.csv
 
 Optional parameters:
 ```bash
-python main.py data.csv --correlation-threshold 0.7 --significance-level 0.01 --port 8080
+python main.py data.csv --correlation-threshold 0.7 --port 8080
 ```
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 correlation-dashboard/
@@ -176,7 +176,7 @@ python main.py data.csv --port 8080
 python main.py data.csv --debug
 ```
 
-## 📊 Data Requirements
+## Data Requirements
 
 ### Supported File Formats
 - **CSV** (`.csv`)
@@ -190,7 +190,6 @@ python main.py data.csv --debug
 - Tabular format with rows and columns
 - Column headers in first row
 - Mix of categorical and numeric columns
-- Minimum 10 rows (100+ recommended)
 
 **Column Types:**
 
@@ -279,7 +278,7 @@ AND p_group < 0.05
 AND p_overall < 0.05
 ```
 
-## 🔄 Dependencies
+## Dependencies
 
 ### Required Python Packages
 
@@ -300,7 +299,7 @@ openpyxl>=3.1.0                 # Excel file support (.xlsx)
 **Tested on:** Python 3.10, 3.11
 
 
-## 📚 Additional Resources
+## Additional Resources
 
 ### Statistical Concepts
 
