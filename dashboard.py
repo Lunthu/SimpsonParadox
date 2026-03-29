@@ -74,7 +74,7 @@ class CorrelationDashboard:
         header = dbc.Container([
             dbc.Row([
                 dbc.Col([
-                    html.H1("📊 Correlation Analysis Dashboard", 
+                    html.H1("Hidden Patterns Dashboard", 
                            className="text-primary mb-3"),
                     html.P("Automated correlation detection and pattern analysis",
                           className="lead text-muted")
@@ -123,11 +123,11 @@ class CorrelationDashboard:
         # Tabs for different views
         tabs = dbc.Container([
             dbc.Tabs([
-                dbc.Tab(label="🚨 Hidden Patterns", tab_id="hidden", class_name="fw-bold"),
-                dbc.Tab(label="📈 Correlation Matrix", tab_id="matrix"),
-                dbc.Tab(label="🔍 Scatter Plots", tab_id="scatter"),
-                dbc.Tab(label="⚡ Pattern Analysis", tab_id="patterns"),
-                dbc.Tab(label="📊 Distribution Analysis", tab_id="distribution"),
+                dbc.Tab(label="Hidden Patterns", tab_id="hidden", class_name="fw-bold"),
+                dbc.Tab(label="Correlation Matrix", tab_id="matrix"),
+                dbc.Tab(label="Scatter Plots", tab_id="scatter"),
+                dbc.Tab(label="Pattern Analysis", tab_id="patterns"),
+                dbc.Tab(label="Distribution Analysis", tab_id="distribution"),
             ], id="tabs", active_tab="hidden", className="mb-3"),
             
             html.Div(id="tab-content")
@@ -770,10 +770,10 @@ class CorrelationDashboard:
             debug: Enable debug mode
             port: Port number
         """
-        print(f"\n🚀 Starting dashboard on http://localhost:{port}")
-        print(f"📊 Analyzing {len(self.analyzer.data)} rows with {len(self.analyzer.metrics)} metrics")
-        print(f"🔍 Found {len(self.analyzer.correlations)} correlations")
-        print(f"⚡ Detected {len(self.analyzer.patterns)} patterns\n")
+        print(f"\n Starting dashboard on http://localhost:{port}")
+        print(f" Analyzing {len(self.analyzer.data)} rows with {len(self.analyzer.metrics)} metrics")
+        print(f" Found {len(self.analyzer.correlations)} correlations")
+        print(f" Detected {len(self.analyzer.patterns)} patterns\n")
         
         # Disable reloader to prevent double execution of analysis
         # Dev tools will still work for debugging UI
